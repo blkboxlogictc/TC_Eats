@@ -1,9 +1,15 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ChefHat, UserCircle } from "lucide-react";
+import { Menu, X, ChefHat, UserCircle, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import logo from "@assets/tclifestyle-logo-high-res-color-white-letters_1769118005447.png";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function Navigation() {
   const { user, logout } = useAuth();
@@ -20,9 +26,14 @@ export function Navigation() {
   }, []);
 
   const navLinks = [
-    { href: "/", label: "Home" },
     { href: "/directory", label: "Eat Local" },
     { href: "/offers", label: "Offers" },
+  ];
+
+  const homeSubLinks = [
+    { href: "/about", label: "About Us" },
+    { href: "/how-it-works", label: "How it Works" },
+    { href: "/contact", label: "Contact" },
   ];
 
   return (
@@ -45,6 +56,24 @@ export function Navigation() {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-8">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="text-sm font-medium hover:text-secondary transition-colors uppercase tracking-wider flex items-center gap-1 outline-none">
+              Home <ChevronDown className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-primary border-white/10 text-white">
+              <DropdownMenuItem asChild>
+                <Link href="/" className="w-full cursor-pointer hover:bg-white/10">Home Page</Link>
+              </DropdownMenuItem>
+              {homeSubLinks.map((link) => (
+                <DropdownMenuItem key={link.href} asChild>
+                  <Link href={link.href} className="w-full cursor-pointer hover:bg-white/10">
+                    {link.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -96,6 +125,19 @@ export function Navigation() {
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden absolute top-full left-0 right-0 bg-primary border-t border-white/10 p-4 flex flex-col gap-4 shadow-xl">
+          <Link href="/" className="text-white font-medium py-2 hover:text-secondary" onClick={() => setIsOpen(false)}>
+            Home
+          </Link>
+          {homeSubLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="text-white/80 font-medium py-1 pl-4 hover:text-secondary"
+              onClick={() => setIsOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
           {navLinks.map((link) => (
             <Link
               key={link.href}

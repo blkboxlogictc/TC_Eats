@@ -208,6 +208,85 @@ async function seedDatabase() {
       description: "Half price cocktails from 4-6pm.",
       active: true,
     });
+
+    // 6 more varied listings
+    const r3 = await storage.createRestaurant({
+      ownerId: "seed-user-3",
+      name: "Dolphin Bar & Shrimp House",
+      description: "Historic waterfront restaurant with amazing views.",
+      address: "1401 NE Ocean Blvd",
+      city: "Jensen Beach",
+      zip: "34957",
+      cuisine: "Seafood",
+      phone: "772-225-2747",
+      subscriptionTier: "silver",
+      heroImageUrl: "https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&q=80",
+    });
+
+    const r4 = await storage.createRestaurant({
+      ownerId: "seed-user-4",
+      name: "Pietro's on the Ocean",
+      description: "Fine Italian dining with an ocean view.",
+      address: "10900 S Ocean Dr",
+      city: "Jensen Beach",
+      zip: "34957",
+      cuisine: "Italian",
+      phone: "772-229-3131",
+      subscriptionTier: "gold",
+      heroImageUrl: "https://images.unsplash.com/photo-1551183053-bf91a1d81141?auto=format&fit=crop&q=80",
+    });
+
+    const r5 = await storage.createRestaurant({
+      ownerId: "seed-user-5",
+      name: "Conchy Joe's Seafood",
+      description: "Bahamian-style seafood in a rustic setting.",
+      address: "3945 NE Indian River Dr",
+      city: "Jensen Beach",
+      zip: "34957",
+      cuisine: "Seafood",
+      phone: "772-334-1130",
+      subscriptionTier: "silver",
+      heroImageUrl: "https://images.unsplash.com/photo-1534080564607-c9275445f29c?auto=format&fit=crop&q=80",
+    });
+
+    const r6 = await storage.createRestaurant({
+      ownerId: "seed-user-6",
+      name: "Stringers Tavern & Oyster Bar",
+      description: "Modern tavern with fresh oysters and craft beer.",
+      address: "3754 NE Indian River Dr",
+      city: "Jensen Beach",
+      zip: "34957",
+      cuisine: "American",
+      phone: "772-208-5464",
+      subscriptionTier: "gold",
+      heroImageUrl: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80",
+    });
+
+    const r7 = await storage.createRestaurant({
+      ownerId: "seed-user-7",
+      name: "Guanabanas Restaurant",
+      description: "Lush tropical outdoor dining experience.",
+      address: "960 N Hwy A1A",
+      city: "Jupiter",
+      zip: "33477",
+      cuisine: "American",
+      phone: "561-747-8878",
+      subscriptionTier: "platinum",
+      heroImageUrl: "https://images.unsplash.com/photo-1502301103675-91d57632d076?auto=format&fit=crop&q=80",
+    });
+
+    const r8 = await storage.createRestaurant({
+      ownerId: "seed-user-8",
+      name: "Taco Shack",
+      description: "Casual local spot for fresh tacos and bowls.",
+      address: "1155 SE Federal Hwy",
+      city: "Stuart",
+      zip: "34994",
+      cuisine: "Mexican",
+      phone: "772-288-9641",
+      subscriptionTier: "silver",
+      heroImageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&q=80",
+    });
     
     console.log("Seeding complete.");
   }
