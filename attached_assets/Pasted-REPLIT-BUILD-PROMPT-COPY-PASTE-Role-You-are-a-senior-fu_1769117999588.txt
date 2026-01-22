@@ -1,0 +1,356 @@
+REPLIT BUILD PROMPT (COPY/PASTE)
+
+Role: You are a senior full-stack engineer and product architect.
+Goal: Build a scalable MVP for a local restaurant discovery and marketing platform using a React frontend, a Node/Express backend deployed on Render, and Supabase as the primary database and authentication provider.
+
+1. PRODUCT OVERVIEW
+
+Build a Treasure Coast Restaurants MVP that replicates the current public-facing design of https://treasurecoastrestaurants.com/
+ while introducing a modern backend architecture that supports:
+
+Restaurant listings & discovery
+
+Restaurant subscriptions (tiered plans)
+
+Patron opt-in for offers (email + SMS)
+
+Curated SMS campaigns
+
+Offer submissions
+
+Usage tracking (SMS + physical credits)
+
+Admin & restaurant dashboards (MVP scope)
+
+This MVP must be usable immediately and extensible for:
+
+iOS / Android app
+
+Additional marketing channels
+
+Advanced analytics
+
+2. TECH STACK REQUIREMENTS
+Frontend
+
+React (Vite or Next.js)
+
+Tailwind CSS (or CSS modules if needed for pixel precision)
+
+Responsive, mobile-first
+
+Fonts, spacing, layout, and visual hierarchy should closely match the current WordPress site
+
+Recreate:
+
+Homepage layout
+
+Header/nav placement
+
+Restaurant listing cards
+
+Buttons, hover styles, typography scale
+
+Section spacing and imagery patterns
+
+Backend
+
+Node.js + Express
+
+Deployed on Render
+
+Acts as an API layer between frontend and Supabase
+
+Handles:
+
+Auth validation
+
+Business logic
+
+Rate limiting
+
+Stripe + Twilio webhooks
+
+Database & Auth
+
+Supabase
+
+PostgreSQL database
+
+Supabase Auth (email/password for restaurants & admins)
+
+Row Level Security (RLS)
+
+All core data must live in Supabase (not WordPress)
+
+Integrations
+
+Stripe (subscriptions + metered add-ons)
+
+Twilio (SMS campaigns, STOP handling)
+
+Email provider (SendGrid/Postmark)
+
+3. BRAND & DESIGN CONSTRAINTS (CRITICAL)
+
+Use the existing Treasure Coast Restaurants branding as reference.
+
+Brand cues:
+
+Coastal, local, lifestyle-oriented
+
+Friendly but authoritative
+
+Not overly “techy”
+
+Logo reference:
+
+Use the provided logo file:
+/mnt/data/tclifestyle-logo-high-res-color-white-letters.png
+
+Color palette (approximate from logo):
+
+Primary blue (nav, headers, accents)
+
+Warm gold / sand tones (CTAs, highlights)
+
+White backgrounds
+
+Light coastal blues for section breaks
+
+Design rules:
+
+Match button shapes, spacing, and alignment from the current site
+
+Preserve content density (not too sparse)
+
+Use real placeholder imagery styled like food/restaurant photography
+
+Avoid SaaS-looking dashboards on public pages
+
+4. CORE MVP FEATURES TO BUILD
+A. Public Pages (Frontend)
+
+Homepage
+
+Hero section
+
+Restaurant discovery CTA
+
+Categories / cuisines
+
+Featured restaurants
+
+“Get local deals” opt-in section
+
+Restaurant Directory
+
+Search + filter (location, cuisine)
+
+Restaurant cards
+
+Individual restaurant profile pages
+
+Deals / Offers Landing Page
+
+Explains SMS/email deals
+
+Opt-in form with consent language
+
+Restaurant Marketing Page
+
+Explains plans (Digital, Silver, Gold, Platinum)
+
+CTA to sign up or book a call
+
+B. Patron Offer + SMS Flow (MVP)
+
+Patron opt-in form:
+
+Phone number
+
+City/ZIP
+
+Cuisine interests
+
+Consent checkbox (TCPA-compliant)
+
+Store:
+
+Consent timestamp
+
+Preferences
+
+Admin can trigger curated SMS campaigns
+
+Twilio integration:
+
+STOP handling
+
+Delivery status logging
+
+No restaurant-initiated SMS in MVP.
+
+C. Restaurant Portal (MVP)
+
+Authenticated dashboard for restaurant owners:
+
+View subscription tier
+
+View usage:
+
+SMS placements remaining
+
+Printing/signage credits remaining
+
+Submit:
+
+Offers (title, description, expiration)
+
+Upload:
+
+Logo
+
+Photos
+
+View:
+
+Podcast schedule
+
+Radio ad status (basic)
+
+Edit:
+
+Basic listing info
+
+Keep UI clean and simple.
+
+D. Admin Dashboard (MVP)
+
+Admin-only access:
+
+View all restaurants
+
+View patron opt-ins
+
+Approve offers
+
+Trigger SMS campaigns
+
+View usage metrics
+
+Adjust restaurant limits manually
+
+5. DATABASE SCHEMA (INITIAL)
+
+Create Supabase tables for:
+
+users (auth)
+
+restaurants
+
+restaurant_plans
+
+subscriptions
+
+offers
+
+patrons
+
+patron_preferences
+
+sms_campaigns
+
+sms_logs
+
+usage_counters
+
+print_credits
+
+Use foreign keys and timestamps everywhere.
+
+Enable Row Level Security so:
+
+Restaurants only see their own data
+
+Patrons never see other patrons
+
+Admins see everything
+
+6. PAYMENT & BILLING (MVP)
+
+Stripe subscriptions for plans
+
+Usage-based add-ons:
+
+Additional SMS
+
+Additional print credits
+
+Webhooks handled via backend on Render
+
+Store subscription status in Supabase
+
+7. DELIVERABLE EXPECTATIONS
+
+The output should include:
+
+A running React frontend
+
+A working Node/Express backend
+
+A connected Supabase project
+
+Seed data for demo restaurants
+
+Clear instructions:
+
+Environment variables
+
+How to run locally
+
+How to deploy to Render
+
+Code structured for:
+
+Easy feature expansion
+
+Mobile app reuse later
+
+8. IMPORTANT MVP CONSTRAINTS
+
+Do NOT over-engineer
+
+Focus on:
+
+Discovery
+
+Offers
+
+Subscriptions
+
+Admin-triggered SMS only
+
+Restaurant dashboards must be usable but minimal
+
+Design fidelity to current site is more important than fancy animations
+
+9. FINAL INSTRUCTION
+
+Build this as a real product MVP, not a demo.
+
+Assume this will be used by:
+
+Real restaurants
+
+Real patrons
+
+Within 30–60 days
+
+Favor:
+
+Stability
+
+Clarity
+
+Scalability
