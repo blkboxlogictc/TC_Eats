@@ -1,7 +1,8 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, blob, real } from "drizzle-orm/sqlite-core";
+import { pgTable, serial, boolean, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Export auth models
 export * from "./models/auth";
@@ -11,10 +12,11 @@ export const subscriptionTiers = ["free", "silver", "gold", "platinum"] as const
 export type SubscriptionTier = typeof subscriptionTiers[number];
 
 // === TABLE DEFINITIONS ===
+// Using SQLite for demo/development
 
-export const restaurants = pgTable("restaurants", {
-  id: serial("id").primaryKey(),
-  ownerId: varchar("owner_id").notNull(), // Links to auth users.id
+export const restaurants = sqliteTable("restaurants", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  ownerId: text("owner_id").notNull(), // Links to auth users.id
   name: text("name").notNull(),
   description: text("description"),
   address: text("address"),
@@ -25,38 +27,38 @@ export const restaurants = pgTable("restaurants", {
   website: text("website"),
   logoUrl: text("logo_url"),
   heroImageUrl: text("hero_image_url"),
-  subscriptionTier: text("subscription_tier", { enum: subscriptionTiers }).default("free").notNull(),
-  isFeatured: boolean("is_featured").default(false),
+  subscriptionTier: text("subscription_tier").default("free").notNull(),
+  isFeatured: integer("is_featured", { mode: "boolean" }).default(false),
   printCredits: integer("print_credits").default(0),
   smsCredits: integer("sms_credits").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const offers = pgTable("offers", {
-  id: serial("id").primaryKey(),
+export const offers = sqliteTable("offers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   restaurantId: integer("restaurant_id").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
-  active: boolean("active").default(true),
-  expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").defaultNow(),
+  active: integer("active", { mode: "boolean" }).default(true),
+  expiresAt: text("expires_at"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const patrons = pgTable("patrons", {
-  id: serial("id").primaryKey(),
+export const patrons = sqliteTable("patrons", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   phone: text("phone").notNull().unique(), // Simple unique constraint for MVP
   city: text("city"),
   zip: text("zip"),
-  cuisinePreferences: jsonb("cuisine_preferences").$type<string[]>(), // Array of cuisines
-  consentedAt: timestamp("consented_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
+  cuisinePreferences: text("cuisine_preferences"), // JSON string in SQLite
+  consentedAt: text("consented_at").default(sql`CURRENT_TIMESTAMP`),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-export const smsCampaigns = pgTable("sms_campaigns", {
-  id: serial("id").primaryKey(),
+export const smsCampaigns = sqliteTable("sms_campaigns", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   content: text("content").notNull(),
-  sentAt: timestamp("sent_at").defaultNow(),
-  targetCriteria: jsonb("target_criteria"), // e.g. { city: "Stuart", cuisine: "Italian" }
+  sentAt: text("sent_at").default(sql`CURRENT_TIMESTAMP`),
+  targetCriteria: text("target_criteria"), // JSON string in SQLite
   recipientCount: integer("recipient_count").default(0),
 });
 

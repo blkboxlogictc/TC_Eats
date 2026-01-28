@@ -5,73 +5,94 @@ import { Footer } from "@/components/Footer";
 import { RestaurantCard } from "@/components/RestaurantCard";
 import { OfferCard } from "@/components/OfferCard";
 import { PatronForm } from "@/components/PatronForm";
+import { EnhancedSearchBar } from "@/components/EnhancedSearchBar";
+import { PlacesToDiscover } from "@/components/PlacesToDiscover";
+import { MetricsSection } from "@/components/MetricsSection";
+import { LatestListings } from "@/components/LatestListings";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ArrowRight, Search, Utensils, Award } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Home() {
   const { data: restaurants, isLoading: loadingRestaurants } = useRestaurants();
   const { data: offers, isLoading: loadingOffers } = usePublicOffers();
+  const [, setLocation] = useLocation();
 
   // Get featured restaurants first, then fill with others
   const featuredRestaurants = restaurants
     ?.sort((a, b) => (Number(b.isFeatured) - Number(a.isFeatured)))
     .slice(0, 3);
 
+  const handleSearch = (query: string, cuisine: string, location: string) => {
+    console.log('Home handleSearch called:', { query, cuisine, location }); // Debug log
+    
+    // Navigate to map search with search parameters
+    const params = new URLSearchParams();
+    if (query && query.trim()) params.set('search', query.trim());
+    
+    // Only set cuisine if it's not the "all" option
+    if (cuisine && cuisine !== 'all-cuisines' && cuisine !== 'All Cuisines') {
+      params.set('cuisine', cuisine);
+    }
+    
+    // Only set location if it's not the "all" option
+    if (location && location !== 'all-locations' && location !== 'All Locations') {
+      params.set('city', location);
+    }
+    
+    const searchUrl = `/map-search${params.toString() ? `?${params.toString()}` : ''}`;
+    console.log('Navigating to:', searchUrl); // Debug log
+    
+    setLocation(searchUrl);
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
       
       {/* Hero Section */}
-      <section className="relative h-[85vh] min-h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[600px] md:min-h-[700px] lg:min-h-[800px] flex items-center justify-center overflow-hidden">
         {/* Unsplash Beach/Food Image */}
         {/* descriptive comment: A beautiful coastal dining table setting overlooking the ocean at sunset */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?q=80&w=2070&auto=format&fit=crop" 
-            alt="Coastal Dining" 
+          <img
+            src="https://images.unsplash.com/photo-1533777857889-4be7c70b33f7?q=80&w=2070&auto=format&fit=crop"
+            alt="Coastal Dining"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/40" />
         </div>
 
-        <div className="relative z-10 container-custom text-center text-white pt-20">
+        <div className="relative z-10 container-custom text-center text-white">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
+            className="mb-16"
           >
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6 text-white leading-tight">
-              Eat. Play. <span className="text-secondary italic">Live.</span>
+              Discover Amazing <span className="text-secondary italic">Places</span>
             </h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 font-light">
-              Discover the hidden gems and culinary treasures of the Treasure Coast. 
-              From Stuart to Vero Beach, we curate the best local experiences.
+            <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto mb-12 font-light">
+              Find the best restaurants, bars, and dining experiences across the beautiful Treasure Coast.
+              From waterfront dining to hidden gems, your next great meal awaits.
             </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/directory">
-                <Button size="lg" className="bg-secondary text-primary hover:bg-white hover:text-primary font-bold px-8 py-6 text-lg shadow-xl shadow-black/20 rounded-full">
-                  Find a Table
-                </Button>
-              </Link>
-              <Link href="/offers">
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10 hover:text-white px-8 py-6 text-lg rounded-full backdrop-blur-sm">
-                  View Offers
-                </Button>
-              </Link>
-            </div>
           </motion.div>
-        </div>
-        
-        {/* Wave separator */}
-        <div className="absolute bottom-0 left-0 right-0 z-20">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320" className="w-full h-auto text-background fill-current">
-            <path fillOpacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,261.3C960,256,1056,224,1152,197.3C1248,171,1344,149,1392,138.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path>
-          </svg>
+
+          {/* Enhanced Search Bar */}
+          <div className="max-w-6xl mx-auto mb-16">
+            <EnhancedSearchBar onSearch={handleSearch} />
+          </div>
+
         </div>
       </section>
+
+      {/* Places to Discover Section */}
+      <PlacesToDiscover />
+
+      {/* Metrics Section */}
+      <MetricsSection />
 
       {/* Featured Section */}
       <section className="py-20 bg-background">
@@ -107,6 +128,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Latest Listings Section */}
+      <LatestListings />
+
       {/* Offers Ticker / Grid */}
       <section className="py-20 bg-white border-y border-border/50">
         <div className="container-custom">
@@ -140,7 +164,7 @@ export default function Home() {
                 Never Miss a <br /><span className="text-secondary">Delicious Deal</span>
               </h2>
               <p className="text-white/80 text-lg mb-8 leading-relaxed">
-                Join our VIP club to receive weekly curated offers from the Treasure Coast's finest establishments. 
+                Join our VIP club to receive weekly curated offers from the Treasure Coast's finest establishments.
                 Be the first to know about new openings, secret menus, and chef specials.
               </p>
               

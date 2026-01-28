@@ -13,6 +13,8 @@ import Dashboard from "@/pages/Dashboard";
 import AboutUs from "@/pages/AboutUs";
 import HowItWorks from "@/pages/HowItWorks";
 import Contact from "@/pages/Contact";
+import Offers from "@/pages/Offers";
+import MapSearch from "@/pages/MapSearch";
 
 function Router() {
   return (
@@ -20,7 +22,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/directory" component={Directory} />
       <Route path="/restaurant/:id" component={RestaurantDetail} />
-      <Route path="/offers" component={Home} /> {/* Reuse home for now or specific offers page */}
+      <Route path="/offers" component={Offers} />
+      <Route path="/map-search" component={MapSearch} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/about" component={AboutUs} />
       <Route path="/how-it-works" component={HowItWorks} />

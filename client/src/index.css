@@ -69,4 +69,59 @@
   .glass-card {
     @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-xl;
   }
+  
+  .hover-elevate {
+    @apply transition-all duration-200 ease-in-out;
+  }
+  
+  .hover-elevate:hover {
+    @apply transform -translate-y-0.5 shadow-lg;
+  }
+  
+  .active-elevate-2 {
+    @apply transition-all duration-100 ease-in-out;
+  }
+  
+  .active-elevate-2:active {
+    @apply transform translate-y-0.5 shadow-sm;
+  }
+}
+
+/* Leaflet Map Styles */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  z-index: 1;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+}
+
+.custom-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  padding: 0;
+}
+
+.custom-popup .leaflet-popup-content {
+  margin: 12px;
+}
+
+.user-location-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Fix for Leaflet marker images */
+.leaflet-default-icon-path {
+  background-image: url("https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png");
 }

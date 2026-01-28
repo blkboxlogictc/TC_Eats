@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import type { Server } from "http";
-import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { setupDemoAuth } from "./auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
@@ -11,8 +11,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   // Auth setup
-  await setupAuth(app);
-  registerAuthRoutes(app);
+  setupDemoAuth(app);
 
   // === RESTAURANTS ===
   app.get(api.restaurants.list.path, async (req, res) => {
@@ -185,7 +184,7 @@ async function seedDatabase() {
       title: "Free Appetizer",
       description: "Get a free calamari with any two entrees.",
       active: true,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
     });
 
     const r2 = await storage.createRestaurant({

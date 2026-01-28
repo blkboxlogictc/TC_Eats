@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { getDatabase } from "./db";
 import { 
   restaurants, offers, patrons, smsCampaigns,
   type Restaurant, type InsertRestaurant,
@@ -31,6 +31,7 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getRestaurants(filters?: { search?: string, cuisine?: string, city?: string }): Promise<Restaurant[]> {
+    const db = getDatabase();
     let conditions = [];
     
     if (filters?.search) {
@@ -50,6 +51,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurant(id: number): Promise<RestaurantWithOffers | undefined> {
+    const db = getDatabase();
     const restaurant = await db.query.restaurants.findFirst({
       where: eq(restaurants.id, id),
       with: {
@@ -60,12 +62,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRestaurantByOwnerId(ownerId: string): Promise<Restaurant | undefined> {
+    const db = getDatabase();
     return await db.query.restaurants.findFirst({
       where: eq(restaurants.ownerId, ownerId),
     });
   }
 
   async createRestaurant(insertRestaurant: InsertRestaurant & { ownerId: string }): Promise<Restaurant> {
+    const db = getDatabase();
     const [restaurant] = await db
       .insert(restaurants)
       .values(insertRestaurant)
@@ -74,6 +78,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateRestaurant(id: number, updates: Partial<InsertRestaurant>): Promise<Restaurant> {
+    const db = getDatabase();
     const [updated] = await db
       .update(restaurants)
       .set(updates)
@@ -83,6 +88,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOffers(restaurantId?: number): Promise<(Offer & { restaurant?: Restaurant })[]> {
+    const db = getDatabase();
     if (restaurantId) {
       return await db.query.offers.findMany({
         where: eq(offers.restaurantId, restaurantId),
@@ -102,6 +108,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createOffer(insertOffer: InsertOffer & { restaurantId: number }): Promise<Offer> {
+    const db = getDatabase();
     const [offer] = await db
       .insert(offers)
       .values(insertOffer)
@@ -110,6 +117,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPatron(insertPatron: InsertPatron): Promise<Patron> {
+    const db = getDatabase();
     const [patron] = await db
       .insert(patrons)
       .values(insertPatron)
@@ -118,6 +126,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getStats(): Promise<{ totalRestaurants: number, totalPatrons: number, totalOffers: number }> {
+    const db = getDatabase();
     const [r] = await db.select({ count: sql<number>`count(*)` }).from(restaurants);
     const [p] = await db.select({ count: sql<number>`count(*)` }).from(patrons);
     const [o] = await db.select({ count: sql<number>`count(*)` }).from(offers);
@@ -130,6 +139,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSmsCampaign(insertCampaign: InsertSmsCampaign): Promise<SmsCampaign> {
+    const db = getDatabase();
     const [campaign] = await db
       .insert(smsCampaigns)
       .values(insertCampaign)
