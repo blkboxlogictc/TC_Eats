@@ -11,7 +11,11 @@
     "build:static": "vite build",
     "start": "cross-env NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "db:export": "npx tsx script/export-demo-data.ts",
+    "db:migrate": "npx tsx script/migrate-to-postgres.ts",
+    "db:setup": "npm run db:push && npm run db:migrate",
+    "deploy:prep": "npm run db:export && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

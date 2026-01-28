@@ -9,6 +9,7 @@ vite.config.ts.*
 .env
 .env.local
 .env.production
+demo-data-export.json
 
 # Database files
 *.db
