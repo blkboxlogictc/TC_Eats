@@ -1,23 +1,5 @@
 import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
-import pg from "pg";
-
-const { Pool } = pg;
-
-// Database connection
-let pool: pg.Pool;
-
-function getDbPool() {
-  if (!pool) {
-    pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
-      max: 1, // Limit connections in serverless
-      idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: 5000,
-    });
-  }
-  return pool;
-}
+import { neon } from "@neondatabase/serverless";
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   // Set CORS headers
@@ -38,6 +20,13 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   try {
+    // Initialize Neon serverless connection
+    if (!process.env.DATABASE_URL) {
+      throw new Error('DATABASE_URL environment variable is required');
+    }
+    
+    const sql = neon(process.env.DATABASE_URL);
+
     // Get the API path from the URL
     const path = event.path.replace('/.netlify/functions/api', '') || '/';
     const method = event.httpMethod;
@@ -64,16 +53,16 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     if (path === '/auth/user' && method === 'GET') {
       result = await handleAuth();
     } else if (path === '/restaurants' && method === 'GET') {
-      result = await handleRestaurants(query);
+      result = await handleRestaurants(sql, query);
     } else if (path.match(/^\/restaurants\/\d+$/) && method === 'GET') {
       const id = parseInt(path.split('/')[2]);
-      result = await handleRestaurantById(id);
+      result = await handleRestaurantById(sql, id);
     } else if (path === '/my-restaurant' && method === 'GET') {
       result = await handleMyRestaurant();
     } else if (path === '/offers' && method === 'GET') {
-      result = await handleOffers();
+      result = await handleOffers(sql);
     } else if (path === '/admin/stats' && method === 'GET') {
-      result = await handleAdminStats();
+      result = await handleAdminStats(sql);
     } else if (path === '/logout' && method === 'GET') {
       result = await handleLogout();
     } else {
@@ -122,11 +111,9 @@ async function handleAuth() {
   };
 }
 
-async function handleRestaurants(query: any) {
-  const db = getDbPool();
-  
+async function handleRestaurants(sql: any, query: any) {
   try {
-    let sql = `
+    let sqlQuery = `
       SELECT id, owner_id as "ownerId", name, description, address, city, zip, 
              cuisine, phone, website, logo_url as "logoUrl", hero_image_url as "heroImageUrl",
              subscription_tier as "subscriptionTier", is_featured as "isFeatured", 
@@ -137,33 +124,31 @@ async function handleRestaurants(query: any) {
     `;
     
     const params: any[] = [];
-    let paramIndex = 1;
+    let conditions: string[] = [];
     
     if (query.search) {
-      sql += ` AND name ILIKE $${paramIndex}`;
-      params.push(`%${query.search}%`);
-      paramIndex++;
+      conditions.push(`name ILIKE '%${query.search}%'`);
     }
     
     if (query.cuisine) {
-      sql += ` AND cuisine ILIKE $${paramIndex}`;
-      params.push(`%${query.cuisine}%`);
-      paramIndex++;
+      conditions.push(`cuisine ILIKE '%${query.cuisine}%'`);
     }
     
     if (query.city) {
-      sql += ` AND city ILIKE $${paramIndex}`;
-      params.push(`%${query.city}%`);
-      paramIndex++;
+      conditions.push(`city ILIKE '%${query.city}%'`);
     }
     
-    sql += ` ORDER BY is_featured DESC, name`;
+    if (conditions.length > 0) {
+      sqlQuery += ' AND ' + conditions.join(' AND ');
+    }
     
-    const result = await db.query(sql, params);
+    sqlQuery += ` ORDER BY is_featured DESC, name`;
+    
+    const result = await sql(sqlQuery);
     
     return {
       statusCode: 200,
-      body: result.rows
+      body: result
     };
   } catch (error) {
     console.error('Error fetching restaurants:', error);
@@ -174,9 +159,7 @@ async function handleRestaurants(query: any) {
   }
 }
 
-async function handleRestaurantById(id: number) {
-  const db = getDbPool();
-  
+async function handleRestaurantById(sql: any, id: number) {
   try {
     const restaurantQuery = `
       SELECT id, owner_id as "ownerId", name, description, address, city, zip, 
@@ -185,30 +168,30 @@ async function handleRestaurantById(id: number) {
              print_credits as "printCredits", sms_credits as "smsCredits", 
              created_at as "createdAt"
       FROM restaurants 
-      WHERE id = $1
+      WHERE id = ${id}
     `;
     
     const offersQuery = `
       SELECT id, restaurant_id as "restaurantId", title, description, active, 
              expires_at as "expiresAt", created_at as "createdAt"
       FROM offers 
-      WHERE restaurant_id = $1
+      WHERE restaurant_id = ${id}
     `;
     
     const [restaurantResult, offersResult] = await Promise.all([
-      db.query(restaurantQuery, [id]),
-      db.query(offersQuery, [id])
+      sql(restaurantQuery),
+      sql(offersQuery)
     ]);
     
-    if (restaurantResult.rows.length === 0) {
+    if (restaurantResult.length === 0) {
       return {
         statusCode: 404,
         body: { message: "Restaurant not found" }
       };
     }
     
-    const restaurant = restaurantResult.rows[0];
-    restaurant.offers = offersResult.rows;
+    const restaurant = restaurantResult[0];
+    restaurant.offers = offersResult;
     
     return {
       statusCode: 200,
@@ -231,24 +214,30 @@ async function handleMyRestaurant() {
   };
 }
 
-async function handleOffers() {
-  const db = getDbPool();
-  
+async function handleOffers(sql: any) {
   try {
-    const sql = `
+    const sqlQuery = `
       SELECT o.id, o.restaurant_id as "restaurantId", o.title, o.description, 
              o.active, o.expires_at as "expiresAt", o.created_at as "createdAt",
-             r.id as "restaurant.id", r.owner_id as "restaurant.ownerId", 
-             r.name as "restaurant.name", r.description as "restaurant.description",
-             r.address as "restaurant.address", r.city as "restaurant.city", 
-             r.zip as "restaurant.zip", r.cuisine as "restaurant.cuisine",
-             r.phone as "restaurant.phone", r.website as "restaurant.website",
-             r.logo_url as "restaurant.logoUrl", r.hero_image_url as "restaurant.heroImageUrl",
-             r.subscription_tier as "restaurant.subscriptionTier", 
-             r.is_featured as "restaurant.isFeatured",
-             r.print_credits as "restaurant.printCredits", 
-             r.sms_credits as "restaurant.smsCredits",
-             r.created_at as "restaurant.createdAt"
+             json_build_object(
+               'id', r.id,
+               'ownerId', r.owner_id,
+               'name', r.name,
+               'description', r.description,
+               'address', r.address,
+               'city', r.city,
+               'zip', r.zip,
+               'cuisine', r.cuisine,
+               'phone', r.phone,
+               'website', r.website,
+               'logoUrl', r.logo_url,
+               'heroImageUrl', r.hero_image_url,
+               'subscriptionTier', r.subscription_tier,
+               'isFeatured', r.is_featured,
+               'printCredits', r.print_credits,
+               'smsCredits', r.sms_credits,
+               'createdAt', r.created_at
+             ) as restaurant
       FROM offers o
       JOIN restaurants r ON o.restaurant_id = r.id
       WHERE o.active = true
@@ -256,44 +245,11 @@ async function handleOffers() {
       LIMIT 50
     `;
     
-    const result = await db.query(sql);
-    
-    // Transform flat result into nested structure
-    const offers = result.rows.map(row => {
-      const offer = {
-        id: row.id,
-        restaurantId: row.restaurantId,
-        title: row.title,
-        description: row.description,
-        active: row.active,
-        expiresAt: row.expiresAt,
-        createdAt: row.createdAt,
-        restaurant: {
-          id: row['restaurant.id'],
-          ownerId: row['restaurant.ownerId'],
-          name: row['restaurant.name'],
-          description: row['restaurant.description'],
-          address: row['restaurant.address'],
-          city: row['restaurant.city'],
-          zip: row['restaurant.zip'],
-          cuisine: row['restaurant.cuisine'],
-          phone: row['restaurant.phone'],
-          website: row['restaurant.website'],
-          logoUrl: row['restaurant.logoUrl'],
-          heroImageUrl: row['restaurant.heroImageUrl'],
-          subscriptionTier: row['restaurant.subscriptionTier'],
-          isFeatured: row['restaurant.isFeatured'],
-          printCredits: row['restaurant.printCredits'],
-          smsCredits: row['restaurant.smsCredits'],
-          createdAt: row['restaurant.createdAt']
-        }
-      };
-      return offer;
-    });
+    const result = await sql(sqlQuery);
     
     return {
       statusCode: 200,
-      body: offers
+      body: result
     };
   } catch (error) {
     console.error('Error fetching offers:', error);
@@ -304,22 +260,20 @@ async function handleOffers() {
   }
 }
 
-async function handleAdminStats() {
-  const db = getDbPool();
-  
+async function handleAdminStats(sql: any) {
   try {
     const [restaurants, patrons, offers] = await Promise.all([
-      db.query('SELECT COUNT(*) FROM restaurants'),
-      db.query('SELECT COUNT(*) FROM patrons'),
-      db.query('SELECT COUNT(*) FROM offers')
+      sql('SELECT COUNT(*) FROM restaurants'),
+      sql('SELECT COUNT(*) FROM patrons'),
+      sql('SELECT COUNT(*) FROM offers')
     ]);
     
     return {
       statusCode: 200,
       body: {
-        totalRestaurants: parseInt(restaurants.rows[0].count),
-        totalPatrons: parseInt(patrons.rows[0].count),
-        totalOffers: parseInt(offers.rows[0].count)
+        totalRestaurants: parseInt(restaurants[0].count),
+        totalPatrons: parseInt(patrons[0].count),
+        totalOffers: parseInt(offers[0].count)
       }
     };
   } catch (error) {
