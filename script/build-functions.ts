@@ -17,16 +17,18 @@ async function buildFunctions() {
       outdir: "dist/functions",
       external: [
         "@netlify/functions",
-        "better-sqlite3",
-        "pg",
         "pg-native"
       ],
       define: {
         "process.env.NODE_ENV": '"production"'
       },
-      minify: true,
-      sourcemap: false,
-      tsconfig: "tsconfig.json"
+      minify: false, // Keep unminified for debugging
+      sourcemap: true,
+      tsconfig: "tsconfig.json",
+      resolveExtensions: ['.ts', '.js'],
+      loader: {
+        '.ts': 'ts'
+      }
     });
 
     console.log("✓ Netlify functions built successfully!");
