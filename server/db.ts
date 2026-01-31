@@ -12,10 +12,10 @@ let pool: any = null;
 let sqlite: any = null;
 
 function initializeDatabase() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error(
-      "DATABASE_URL must be set. Did you forget to provision a database?",
-    );
+  // For demo mode, we don't need a real database connection
+  if (!process.env.DATABASE_URL || process.env.DEMO_MODE === "true") {
+    console.log("Demo mode: Skipping database initialization");
+    return null; // Return null to indicate no database
   }
 
   if (db) {

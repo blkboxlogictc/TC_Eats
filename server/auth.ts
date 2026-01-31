@@ -3,17 +3,17 @@ import type { Express, Request, Response, NextFunction } from "express";
 // Simple demo auth middleware - for demonstration purposes only
 // In a real app, you would implement proper authentication
 
-// Demo user for testing
+// Demo owner user for testing - this matches the restaurant owner
 const DEMO_USER = {
-  id: "demo-user-1",
-  email: "demo@example.com",
-  firstName: "Demo",
-  lastName: "User",
+  id: "demo-owner-123",
+  email: "owner@thetwistedtuna.com",
+  firstName: "Sarah",
+  lastName: "Johnson",
   claims: {
-    sub: "demo-user-1",
-    email: "demo@example.com",
-    first_name: "Demo",
-    last_name: "User"
+    sub: "demo-owner-123",
+    email: "owner@thetwistedtuna.com",
+    first_name: "Sarah",
+    last_name: "Johnson"
   }
 };
 
