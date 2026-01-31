@@ -1,53 +1,67 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
+import { useState, useEffect, useMemo } from "react";
 import { type InsertRestaurant, type Restaurant } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { getRestaurants, getRestaurantById, getMyRestaurant } from "../data/demo-data";
 
-// GET /api/restaurants
+// Mock hook for restaurants list with filtering
 export function useRestaurants(filters?: { search?: string; cuisine?: string; city?: string }) {
-  const queryString = filters 
-    ? "?" + new URLSearchParams(Object.entries(filters).filter(([_, v]) => v != null) as [string, string][]).toString()
-    : "";
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const data = useMemo(() => getRestaurants(filters), [filters]);
 
-  return useQuery({
-    queryKey: [api.restaurants.list.path, filters],
-    queryFn: async () => {
-      const res = await fetch(api.restaurants.list.path + queryString, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch restaurants");
-      return api.restaurants.list.responses[200].parse(await res.json());
-    },
-  });
+  useEffect(() => {
+    // Simulate loading delay for UX
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, [filters]);
+
+  return {
+    data,
+    isLoading,
+    error: null,
+    isError: false,
+  };
 }
 
-// GET /api/restaurants/:id
+// Mock hook for single restaurant
 export function useRestaurant(id: number) {
-  return useQuery({
-    queryKey: [api.restaurants.get.path, id],
-    queryFn: async () => {
-      const url = buildUrl(api.restaurants.get.path, { id });
-      const res = await fetch(url, { credentials: "include" });
-      if (res.status === 404) return null;
-      if (!res.ok) throw new Error("Failed to fetch restaurant details");
-      return api.restaurants.get.responses[200].parse(await res.json());
-    },
-    enabled: !!id,
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const data = useMemo(() => getRestaurantById(id), [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    // Simulate loading delay
+    const timer = setTimeout(() => setIsLoading(false), 200);
+    return () => clearTimeout(timer);
+  }, [id]);
+
+  return {
+    data,
+    isLoading: !!id && isLoading,
+    error: null,
+    isError: false,
+  };
 }
 
-// GET /api/my-restaurant
+// Mock hook for authenticated user's restaurant
 export function useMyRestaurant() {
-  return useQuery({
-    queryKey: [api.restaurants.getMyRestaurant.path],
-    queryFn: async () => {
-      const res = await fetch(api.restaurants.getMyRestaurant.path, { credentials: "include" });
-      if (res.status === 401) return null;
-      if (!res.ok) throw new Error("Failed to fetch my restaurant");
-      // Could be null if owner hasn't created one yet, handle gracefully
-      const data = await res.json();
-      return data ? api.restaurants.getMyRestaurant.responses[200].parse(data) : null;
-    },
-    retry: false,
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const data = useMemo(() => getMyRestaurant(), []);
+
+  useEffect(() => {
+    // Simulate loading delay
+    const timer = setTimeout(() => setIsLoading(false), 200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return {
+    data,
+    isLoading,
+    error: null,
+    isError: false,
+  };
 }
 
 // POST /api/restaurants

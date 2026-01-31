@@ -1,38 +1,49 @@
-import { useMutation } from "@tanstack/react-query";
-import { api } from "@shared/routes";
+import { useState } from "react";
 import { type InsertPatron } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { DEMO_PATRONS } from "../data/demo-data";
 
 export function useCreatePatron() {
   const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async (data: InsertPatron) => {
-      const res = await fetch(api.patrons.create.path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to join");
+  const mutate = async (data: InsertPatron) => {
+    setIsPending(true);
+    
+    // Simulate API delay and validation
+    setTimeout(() => {
+      setIsPending(false);
+      
+      // Check if phone already exists (demo validation)
+      const phoneExists = DEMO_PATRONS.some(p => p.phone === data.phone);
+      
+      if (phoneExists) {
+        toast({
+          title: "Couldn't sign up",
+          description: "This phone number is already registered.",
+          variant: "destructive"
+        });
+        return;
       }
-      return api.patrons.create.responses[201].parse(await res.json());
-    },
-    onSuccess: () => {
-      toast({ 
-        title: "Welcome Aboard!", 
-        description: "You've successfully signed up for exclusive local offers." 
+
+      // Simulate successful signup
+      toast({
+        title: "Welcome Aboard!",
+        description: "You've successfully signed up for exclusive local offers. (Demo mode - not persisted)"
       });
-    },
-    onError: (error) => {
-      toast({ 
-        title: "Couldn't sign up", 
-        description: error.message, 
-        variant: "destructive" 
-      });
-    },
-  });
+    }, 1000);
+  };
+
+  const mutateAsync = (data: InsertPatron) => {
+    mutate(data);
+    return Promise.resolve();
+  };
+
+  return {
+    mutate,
+    mutateAsync,
+    isPending,
+    isError: false,
+    error: null,
+  };
 }

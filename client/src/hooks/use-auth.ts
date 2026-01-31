@@ -1,47 +1,28 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { DEMO_USER } from "../data/demo-data";
 import type { User } from "@shared/models/auth";
 
-async function fetchUser(): Promise<User | null> {
-  const response = await fetch("/api/auth/user", {
-    credentials: "include",
-  });
-
-  if (response.status === 401) {
-    return null;
-  }
-
-  if (!response.ok) {
-    throw new Error(`${response.status}: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
-}
-
 export function useAuth() {
-  const queryClient = useQueryClient();
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ["/api/auth/user"],
-    queryFn: fetchUser,
-    retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
+  // Always return the demo user as logged in
+  const [user] = useState<User>(DEMO_USER);
+  const [isLoading] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-    },
-  });
+  const logout = () => {
+    setIsLoggingOut(true);
+    // Simulate logout delay
+    setTimeout(() => {
+      setIsLoggingOut(false);
+      // In a real app, this would redirect or clear user state
+      // For demo, we keep the user logged in
+    }, 1000);
+  };
 
   return {
     user,
     isLoading,
-    isAuthenticated: !!user,
-    logout: logoutMutation.mutate,
-    isLoggingOut: logoutMutation.isPending,
+    isAuthenticated: true, // Always authenticated in demo mode
+    logout,
+    isLoggingOut,
   };
 }

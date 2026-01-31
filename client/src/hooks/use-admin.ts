@@ -1,45 +1,73 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { api } from "@shared/routes";
+import { useState, useEffect, useMemo } from "react";
 import { type InsertSmsCampaign } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { getStats, DEMO_PATRONS } from "../data/demo-data";
 
 export function useAdminStats() {
-  return useQuery({
-    queryKey: [api.admin.stats.path],
-    queryFn: async () => {
-      const res = await fetch(api.admin.stats.path, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch stats");
-      return api.admin.stats.responses[200].parse(await res.json());
-    },
-  });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const data = useMemo(() => getStats(), []);
+
+  useEffect(() => {
+    // Simulate loading delay for UX
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return {
+    data,
+    isLoading,
+    error: null,
+    isError: false,
+  };
 }
 
 export function useSendSmsCampaign() {
   const { toast } = useToast();
+  const [isPending, setIsPending] = useState(false);
 
-  return useMutation({
-    mutationFn: async (data: InsertSmsCampaign) => {
-      const res = await fetch(api.admin.sendSms.path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to send SMS");
+  const mutate = async (data: InsertSmsCampaign) => {
+    setIsPending(true);
+    
+    // Simulate SMS sending delay
+    setTimeout(() => {
+      setIsPending(false);
+      
+      // Calculate recipient count based on target criteria (demo logic)
+      let recipientCount = DEMO_PATRONS.length;
+      if (data.targetCriteria) {
+        try {
+          const criteria = JSON.parse(data.targetCriteria);
+          recipientCount = DEMO_PATRONS.filter(p => {
+            if (criteria.city && p.city !== criteria.city) return false;
+            if (criteria.cuisine && p.cuisinePreferences) {
+              const preferences = JSON.parse(p.cuisinePreferences);
+              if (!preferences.includes(criteria.cuisine)) return false;
+            }
+            return true;
+          }).length;
+        } catch {
+          // Keep full count if criteria parsing fails
+        }
       }
-      return api.admin.sendSms.responses[200].parse(await res.json());
-    },
-    onSuccess: (data) => {
-      toast({ 
-        title: "Campaign Sent", 
-        description: `Message sent to ${data.recipientCount} patrons.` 
+      
+      toast({
+        title: "Campaign Sent",
+        description: `Message sent to ${recipientCount} patrons. (Demo mode - no actual SMS sent)`
       });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
+    }, 1500);
+  };
+
+  const mutateAsync = (data: InsertSmsCampaign) => {
+    mutate(data);
+    return Promise.resolve();
+  };
+
+  return {
+    mutate,
+    mutateAsync,
+    isPending,
+    isError: false,
+    error: null,
+  };
 }
