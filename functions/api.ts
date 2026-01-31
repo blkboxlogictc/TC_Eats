@@ -1,5 +1,23 @@
 import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
-import { neon } from "@neondatabase/serverless";
+
+// Import demo storage instead of database
+import { DemoStorage, DEMO_OWNER_ID } from "../server/demo-storage";
+
+const storage = new DemoStorage();
+
+// Demo user for authentication
+const DEMO_USER = {
+  id: DEMO_OWNER_ID,
+  email: "owner@thetwistedtuna.com",
+  firstName: "Sarah",
+  lastName: "Johnson",
+  claims: {
+    sub: DEMO_OWNER_ID,
+    email: "owner@thetwistedtuna.com",
+    first_name: "Sarah",
+    last_name: "Johnson"
+  }
+};
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   // Set CORS headers
@@ -20,19 +38,12 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 
   try {
-    // Initialize Neon serverless connection
-    if (!process.env.DATABASE_URL) {
-      throw new Error('DATABASE_URL environment variable is required');
-    }
-    
-    const sql = neon(process.env.DATABASE_URL);
-
     // Get the API path from the URL
     const path = event.path.replace('/.netlify/functions/api', '') || '/';
     const method = event.httpMethod;
     
     console.log(`[Netlify Function] ${method} ${path}`);
-    console.log('Query params:', event.queryStringParameters);
+    console.log('Demo Mode: Using hardcoded data');
 
     // Parse query parameters
     const query = event.queryStringParameters || {};
@@ -52,19 +63,26 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
     // Route handlers
     if (path === '/auth/user' && method === 'GET') {
       result = await handleAuth();
+    } else if (path === '/login' && method === 'GET') {
+      result = await handleLogin();
+    } else if (path === '/logout' && method === 'GET') {
+      result = await handleLogout();
     } else if (path === '/restaurants' && method === 'GET') {
-      result = await handleRestaurants(sql, query);
+      result = await handleRestaurants(query);
     } else if (path.match(/^\/restaurants\/\d+$/) && method === 'GET') {
       const id = parseInt(path.split('/')[2]);
-      result = await handleRestaurantById(sql, id);
+      result = await handleRestaurantById(id);
     } else if (path === '/my-restaurant' && method === 'GET') {
       result = await handleMyRestaurant();
     } else if (path === '/offers' && method === 'GET') {
-      result = await handleOffers(sql);
+      result = await handleOffers();
     } else if (path === '/admin/stats' && method === 'GET') {
-      result = await handleAdminStats(sql);
-    } else if (path === '/logout' && method === 'GET') {
-      result = await handleLogout();
+      result = await handleAdminStats();
+    } else if (path === '/patrons' && method === 'POST') {
+      result = await handleCreatePatron(body);
+    } else if (path.match(/^\/restaurants\/\d+\/offers$/) && method === 'POST') {
+      const restaurantId = parseInt(path.split('/')[2]);
+      result = await handleCreateOffer(restaurantId, body);
     } else {
       result = {
         statusCode: 404,
@@ -92,106 +110,60 @@ export const handler: Handler = async (event: HandlerEvent, context: HandlerCont
   }
 };
 
-// Route handlers
+// Route handlers using demo storage
+
 async function handleAuth() {
   return {
     statusCode: 200,
-    body: {
-      id: "demo-user-1",
-      email: "demo@example.com",
-      firstName: "Demo",
-      lastName: "User",
-      claims: {
-        sub: "demo-user-1",
-        email: "demo@example.com",
-        first_name: "Demo",
-        last_name: "User"
-      }
-    }
+    body: DEMO_USER
   };
 }
 
-async function handleRestaurants(sql: any, query: any) {
+async function handleLogin() {
+  return {
+    statusCode: 200,
+    body: { message: "Demo login successful", user: DEMO_USER }
+  };
+}
+
+async function handleLogout() {
+  return {
+    statusCode: 200,
+    body: { message: "Demo logout successful" }
+  };
+}
+
+async function handleRestaurants(query: any) {
   try {
-    let sqlQuery = `
-      SELECT id, owner_id as "ownerId", name, description, address, city, zip, 
-             cuisine, phone, website, logo_url as "logoUrl", hero_image_url as "heroImageUrl",
-             subscription_tier as "subscriptionTier", is_featured as "isFeatured", 
-             print_credits as "printCredits", sms_credits as "smsCredits", 
-             created_at as "createdAt"
-      FROM restaurants 
-      WHERE 1=1
-    `;
-    
-    const params: any[] = [];
-    let conditions: string[] = [];
-    
-    if (query.search) {
-      conditions.push(`name ILIKE '%${query.search}%'`);
-    }
-    
-    if (query.cuisine) {
-      conditions.push(`cuisine ILIKE '%${query.cuisine}%'`);
-    }
-    
-    if (query.city) {
-      conditions.push(`city ILIKE '%${query.city}%'`);
-    }
-    
-    if (conditions.length > 0) {
-      sqlQuery += ' AND ' + conditions.join(' AND ');
-    }
-    
-    sqlQuery += ` ORDER BY is_featured DESC, name`;
-    
-    const result = await sql(sqlQuery);
+    const restaurants = await storage.getRestaurants({
+      search: query.search,
+      cuisine: query.cuisine,
+      city: query.city
+    });
     
     return {
       statusCode: 200,
-      body: result
+      body: restaurants
     };
   } catch (error) {
     console.error('Error fetching restaurants:', error);
     return {
       statusCode: 500,
-      body: { message: 'Error fetching restaurants' }
+      body: { message: 'Failed to fetch restaurants' }
     };
   }
 }
 
-async function handleRestaurantById(sql: any, id: number) {
+async function handleRestaurantById(id: number) {
   try {
-    const restaurantQuery = `
-      SELECT id, owner_id as "ownerId", name, description, address, city, zip, 
-             cuisine, phone, website, logo_url as "logoUrl", hero_image_url as "heroImageUrl",
-             subscription_tier as "subscriptionTier", is_featured as "isFeatured", 
-             print_credits as "printCredits", sms_credits as "smsCredits", 
-             created_at as "createdAt"
-      FROM restaurants 
-      WHERE id = ${id}
-    `;
+    const restaurant = await storage.getRestaurant(id);
     
-    const offersQuery = `
-      SELECT id, restaurant_id as "restaurantId", title, description, active, 
-             expires_at as "expiresAt", created_at as "createdAt"
-      FROM offers 
-      WHERE restaurant_id = ${id}
-    `;
-    
-    const [restaurantResult, offersResult] = await Promise.all([
-      sql(restaurantQuery),
-      sql(offersQuery)
-    ]);
-    
-    if (restaurantResult.length === 0) {
+    if (!restaurant) {
       return {
         statusCode: 404,
-        body: { message: "Restaurant not found" }
+        body: { message: 'Restaurant not found' }
       };
     }
-    
-    const restaurant = restaurantResult[0];
-    restaurant.offers = offersResult;
     
     return {
       statusCode: 200,
@@ -201,93 +173,143 @@ async function handleRestaurantById(sql: any, id: number) {
     console.error('Error fetching restaurant:', error);
     return {
       statusCode: 500,
-      body: { message: 'Error fetching restaurant' }
+      body: { message: 'Failed to fetch restaurant' }
     };
   }
 }
 
 async function handleMyRestaurant() {
-  // For demo purposes, return null (no restaurant for demo user)
-  return {
-    statusCode: 200,
-    body: null
-  };
-}
-
-async function handleOffers(sql: any) {
   try {
-    const sqlQuery = `
-      SELECT o.id, o.restaurant_id as "restaurantId", o.title, o.description, 
-             o.active, o.expires_at as "expiresAt", o.created_at as "createdAt",
-             json_build_object(
-               'id', r.id,
-               'ownerId', r.owner_id,
-               'name', r.name,
-               'description', r.description,
-               'address', r.address,
-               'city', r.city,
-               'zip', r.zip,
-               'cuisine', r.cuisine,
-               'phone', r.phone,
-               'website', r.website,
-               'logoUrl', r.logo_url,
-               'heroImageUrl', r.hero_image_url,
-               'subscriptionTier', r.subscription_tier,
-               'isFeatured', r.is_featured,
-               'printCredits', r.print_credits,
-               'smsCredits', r.sms_credits,
-               'createdAt', r.created_at
-             ) as restaurant
-      FROM offers o
-      JOIN restaurants r ON o.restaurant_id = r.id
-      WHERE o.active = true
-      ORDER BY o.created_at DESC
-      LIMIT 50
-    `;
-    
-    const result = await sql(sqlQuery);
+    const restaurant = await storage.getRestaurantByOwnerId(DEMO_OWNER_ID);
     
     return {
       statusCode: 200,
-      body: result
+      body: restaurant || null
+    };
+  } catch (error) {
+    console.error('Error fetching my restaurant:', error);
+    return {
+      statusCode: 500,
+      body: { message: 'Failed to fetch restaurant' }
+    };
+  }
+}
+
+async function handleOffers() {
+  try {
+    const offers = await storage.getOffers();
+    
+    return {
+      statusCode: 200,
+      body: offers
     };
   } catch (error) {
     console.error('Error fetching offers:', error);
     return {
       statusCode: 500,
-      body: { message: 'Error fetching offers' }
+      body: { message: 'Failed to fetch offers' }
     };
   }
 }
 
-async function handleAdminStats(sql: any) {
+async function handleAdminStats() {
   try {
-    const [restaurants, patrons, offers] = await Promise.all([
-      sql('SELECT COUNT(*) FROM restaurants'),
-      sql('SELECT COUNT(*) FROM patrons'),
-      sql('SELECT COUNT(*) FROM offers')
-    ]);
+    const stats = await storage.getStats();
     
     return {
       statusCode: 200,
-      body: {
-        totalRestaurants: parseInt(restaurants[0].count),
-        totalPatrons: parseInt(patrons[0].count),
-        totalOffers: parseInt(offers[0].count)
-      }
+      body: stats
     };
   } catch (error) {
     console.error('Error fetching stats:', error);
     return {
       statusCode: 500,
-      body: { message: 'Error fetching stats' }
+      body: { message: 'Failed to fetch stats' }
     };
   }
 }
 
-async function handleLogout() {
-  return {
-    statusCode: 200,
-    body: { message: "Demo logout successful" }
-  };
+async function handleCreatePatron(body: any) {
+  try {
+    // Validate required fields
+    if (!body.phone) {
+      return {
+        statusCode: 400,
+        body: { message: 'Phone number is required' }
+      };
+    }
+
+    // Add terms accepted validation
+    if (!body.termsAccepted) {
+      return {
+        statusCode: 400,
+        body: { message: 'You must accept the terms' }
+      };
+    }
+
+    const patron = await storage.createPatron(body);
+    
+    return {
+      statusCode: 201,
+      body: patron
+    };
+  } catch (error) {
+    console.error('Error creating patron:', error);
+    
+    if (error instanceof Error && error.message.includes("already registered")) {
+      return {
+        statusCode: 400,
+        body: { message: "This phone number is already registered." }
+      };
+    }
+    
+    return {
+      statusCode: 500,
+      body: { message: 'Failed to create patron' }
+    };
+  }
+}
+
+async function handleCreateOffer(restaurantId: number, body: any) {
+  try {
+    // Verify restaurant exists and is owned by demo user
+    const restaurant = await storage.getRestaurant(restaurantId);
+    if (!restaurant) {
+      return {
+        statusCode: 404,
+        body: { message: 'Restaurant not found' }
+      };
+    }
+
+    if (restaurant.ownerId !== DEMO_OWNER_ID) {
+      return {
+        statusCode: 401,
+        body: { message: 'Not authorized' }
+      };
+    }
+
+    // Validate required fields
+    if (!body.title || !body.description) {
+      return {
+        statusCode: 400,
+        body: { message: 'Title and description are required' }
+      };
+    }
+
+    const offer = await storage.createOffer({ 
+      ...body, 
+      restaurantId 
+    });
+    
+    return {
+      statusCode: 201,
+      body: offer
+    };
+  } catch (error) {
+    console.error('Error creating offer:', error);
+    return {
+      statusCode: 500,
+      body: { message: 'Failed to create offer' }
+    };
+  }
 }
